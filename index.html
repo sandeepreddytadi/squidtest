@@ -8,22 +8,22 @@
     canvas { display: block; }
   </style>
   <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
-                "GLTFLoader": "https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js",
-                "OrbitControls": "https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js"
-            }
-        }
-    </script>
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "GLTFLoader": "https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js",
+        "OrbitControls": "https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.154.0/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js';
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'GLTFLoader';
+    import { OrbitControls } from 'OrbitControls';
 
-    let scene, camera, renderer, doll;
+    let scene, camera, renderer, doll, head;
 
     init();
     animate();
@@ -48,10 +48,16 @@
 
       const loader = new GLTFLoader();
       loader.load(
-        'doll.glb', // Make sure this file is served correctly relative to index.html
+        'doll.glb',
         function (gltf) {
           doll = gltf.scene;
           scene.add(doll);
+
+          // Try to find the head by name
+          head = doll.getObjectByName("Head");
+          if (!head) {
+            console.warn("Head object not found. Check your model's structure.");
+          }
         },
         undefined,
         function (error) {
@@ -59,7 +65,14 @@
         }
       );
 
-      window.addEventListener('resize', onWindowResize, false);
+      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('keydown', onKeyDown);
+    }
+
+    function onKeyDown(event) {
+      if (event.key.toLowerCase() === 'r' && head) {
+        head.rotation.y += Math.PI; // Rotate 180 degrees
+      }
     }
 
     function onWindowResize() {
@@ -70,16 +83,8 @@
 
     function animate() {
       requestAnimationFrame(animate);
-      if (doll) doll.rotation.y += 0.005;
       renderer.render(scene, camera);
     }
-
-    // Optional click interaction
-    window.addEventListener('click', () => {
-      if (doll) {
-        doll.rotation.y += Math.PI / 2;
-      }
-    });
   </script>
 </body>
 </html>
