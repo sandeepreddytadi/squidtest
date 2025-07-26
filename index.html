@@ -1,93 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Squid Game Doll</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Squid Game Doll</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- three.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
 
-<!-- Include THREE.js and GLTFLoader from CDN -->
-<script type="module">
-  import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js";
-  import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js";
-  import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js";
+    <script>
+      let scene, camera, renderer, doll;
 
-  let scene, camera, renderer, model, mixer;
+      init();
+      animate();
 
-  const clock = new THREE.Clock();
+      function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
 
-  init();
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.5, 4);
 
-  function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1.5, 3);
+        // Light
+        const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        light.position.set(0, 20, 0);
+        scene.add(light);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+        // Load GLB
+        const loader = new THREE.GLTFLoader();
+        loader.load('doll.glb', function (gltf) {
+          doll = gltf.scene;
+          scene.add(doll);
+        }, undefined, function (error) {
+          console.error('GLTF load error:', error);
+        });
 
-    const light = new THREE.DirectionalLight(0xffffff, 2);
-    light.position.set(2, 5, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        window.addEventListener('resize', onWindowResize, false);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-
-    // Load GLB Model
-    const loader = new GLTFLoader();
-    loader.load('doll.glb', (gltf) => {
-      model = gltf.scene;
-      model.scale.set(1.5, 1.5, 1.5);
-      scene.add(model);
-
-      // Check for animations
-      if (gltf.animations && gltf.animations.length > 0) {
-        mixer = new THREE.AnimationMixer(model);
-        gltf.animations.forEach((clip) => {
-          mixer.clipAction(clip).play();
+        // Click event example
+        window.addEventListener('click', () => {
+          if (doll) {
+            doll.rotation.y += Math.PI / 2; // Rotate on click
+          }
         });
       }
-    });
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Click Detection
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    window.addEventListener('click', (event) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(model, true);
-
-      if (intersects.length > 0) {
-        alert('Doll clicked!');
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
       }
-    });
 
-    animate();
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-    const delta = clock.getDelta();
-
-    if (mixer) mixer.update(delta);
-    renderer.render(scene, camera);
-  }
-</script>
-
-</body>
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+    </script>
+  </body>
 </html>
