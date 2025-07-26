@@ -2,80 +2,92 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Squid Game Doll Viewer</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <title>Squid Game Doll</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
-    body {
-      background-color: #000;
-      color: #fff;
-      overflow: hidden;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-    }
-
-    .viewer-section {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    model-viewer {
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-    }
-
-    .music-controls {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 10;
-    }
-
-    .mute-button {
-      background-color: #222;
-      border: 1px solid #555;
-      color: white;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Model Viewer -->
-    <div class="viewer-section">
-      <!-- 👇 Replace this path with the correct one for your doll.glb -->
-      <model-viewer src="doll.glb" autoplay camera-controls disable-zoom shadow-intensity="1" exposure="1.2" style="background-color: transparent;">
-      </model-viewer>
 
-      <!-- Background Music -->
-      <div class="music-controls">
-        <audio id="bg-music" src="https://ia902701.us.archive.org/27/items/squid-game-theme/Squid%20Game%20Theme.mp3" autoplay loop></audio>
-        <button class="mute-button" onclick="toggleMute()">Mute</button>
-      </div>
-    </div>
-  </div>
+<!-- Include THREE.js and GLTFLoader from CDN -->
+<script type="module">
+  import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js";
+  import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js";
+  import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js";
 
-  <script>
-    const bgMusic = document.getElementById("bg-music");
-    function toggleMute() {
-      bgMusic.muted = !bgMusic.muted;
-    }
-  </script>
+  let scene, camera, renderer, model, mixer;
+
+  const clock = new THREE.Clock();
+
+  init();
+
+  function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.5, 3);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const light = new THREE.DirectionalLight(0xffffff, 2);
+    light.position.set(2, 5, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    // Load GLB Model
+    const loader = new GLTFLoader();
+    loader.load('doll.glb', (gltf) => {
+      model = gltf.scene;
+      model.scale.set(1.5, 1.5, 1.5);
+      scene.add(model);
+
+      // Check for animations
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(model);
+        gltf.animations.forEach((clip) => {
+          mixer.clipAction(clip).play();
+        });
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Click Detection
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    window.addEventListener('click', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(model, true);
+
+      if (intersects.length > 0) {
+        alert('Doll clicked!');
+      }
+    });
+
+    animate();
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+
+    if (mixer) mixer.update(delta);
+    renderer.render(scene, camera);
+  }
+</script>
+
 </body>
 </html>
